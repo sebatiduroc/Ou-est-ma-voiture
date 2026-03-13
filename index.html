@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#185FA5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Où est ma voiture ?" />
+  <title>Où est ma voiture ?</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f0;
+      --surface: #ffffff;
+      --surface2: #f0eeea;
+      --border: rgba(0,0,0,0.12);
+      --border2: rgba(0,0,0,0.22);
+      --text: #1a1a18;
+      --text2: #5f5e5a;
+      --text3: #888780;
+      --blue: #185FA5;
+      --blue-bg: #e6f1fb;
+      --blue-text: #0c447c;
+      --green: #3b6d11;
+      --green-bg: #eaf3de;
+      --green-text: #27500a;
+      --red: #a32d2d;
+      --red-bg: #fcebeb;
+      --red-text: #791f1f;
+      --amber: #ba7517;
+      --amber-bg: #faeeda;
+      --radius: 10px;
+      --radius-sm: 7px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --surface: #2c2c2a;
+        --surface2: #222220;
+        --border: rgba(255,255,255,0.1);
+        --border2: rgba(255,255,255,0.2);
+        --text: #f0eeea;
+        --text2: #b4b2a9;
+        --text3: #888780;
+        --blue: #378add;
+        --blue-bg: #042c53;
+        --blue-text: #b5d4f4;
+        --green: #639922;
+        --green-bg: #173404;
+        --green-text: #c0dd97;
+        --red: #e24b4a;
+        --red-bg: #501313;
+        --red-text: #f7c1c1;
+        --amber: #ef9f27;
+        --amber-bg: #412402;
+      }
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 1rem 2rem;
+      min-height: 100vh;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 2.5rem 0 1.5rem;
+    }
+    .header-icon { font-size: 56px; margin-bottom: 10px; }
+    .header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .header p { font-size: 14px; color: var(--text2); }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 12px;
+    }
+
+    /* Form */
+    label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px; }
+
+    input[type="text"], textarea {
+      width: 100%;
+      font-size: 15px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 0.5px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--blue);
+    }
+    textarea { resize: none; height: 64px; }
+
+    /* Buttons */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-align: center;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { opacity: 0.85; transform: scale(0.98); }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 0.5px solid var(--border2);
+    }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm {
+      font-size: 13px;
+      padding: 8px 14px;
+      width: auto;
+      display: inline-block;
+    }
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-row .btn { flex: 1; }
+
+    /* Back button */
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--text);
+      padding: 4px;
+      line-height: 1;
+    }
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+      padding-top: 1.5rem;
+    }
+    .page-header h1 { font-size: 20px; font-weight: 600; }
+
+    /* GPS row */
+    .gps-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
+    .gps-row > div { flex: 1; }
+
+    /* Status */
+    .status {
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+    }
+    .status-info { background: var(--blue-bg); color: var(--blue-text); }
+    .status-success { background: var(--green-bg); color: var(--green-text); }
+    .status-error { background: var(--red-bg); color: var(--red-text); }
+
+    /* Photo */
+    .photo-area {
+      width: 100%;
+      height: 190px;
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--surface2);
+      overflow: hidden;
+      position: relative;
+    }
+    .photo-placeholder { text-align: center; color: var(--text3); pointer-events: none; }
+    .photo-area img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    #fileInput { display: none; }
+
+    /* Timer */
+    .timer-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .timer-icon { font-size: 30px; flex-shrink: 0; }
+    .timer-label { font-size: 12px; color: var(--text3); margin-bottom: 2px; }
+    .timer-value {
+      font-size: 30px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      letter-spacing: 0.03em;
+      color: var(--text);
+      transition: color 0.5s;
+    }
+    .timer-value.warn { color: var(--amber); }
+    .timer-value.alert { color: var(--red); }
+    .timer-since { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+    /* Parking summary */
+    .park-photo {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      display: none;
+    }
+    .park-address { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .park-coords { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+    .park-note { font-size: 14px; color: var(--text2); }
+
+    /* GPS apps */
+    .gps-apps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .gps-app-btn {
+      padding: 12px 6px;
+      border-radius: var(--radius-sm);
+      border: 0.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .gps-app-btn:hover { background: var(--surface2); }
+    .gps-app-btn:active { transform: scale(0.97); }
+    .gps-app-icon { font-size: 24px; display: block; margin-bottom: 5px; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text2);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state strong { display: block; font-size: 16px; color: var(--text); margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; }
+
+    .divider { border: none; border-top: 0.5px solid var(--border); margin: 1rem 0; }
+    .gps-title { font-size: 14px; color: var(--text2); text-align: center; margin-bottom: 10px; }
+
+    /* GPS metrics */
+    .gps-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .gps-metric {
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      text-align: center;
+    }
+    .gps-metric-icon { font-size: 16px; margin-bottom: 2px; }
+    .gps-metric-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .gps-metric-value.good { color: var(--green); }
+    .gps-metric-value.ok { color: var(--amber); }
+    .gps-metric-value.bad { color: var(--red); }
+    .gps-metric-label { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ ÉCRAN ACCUEIL ═══ -->
+  <div class="screen active" id="screen-home">
+    <div class="header">
+      <div class="header-icon">🅿️</div>
+      <h1>Où est ma voiture ?</h1>
+      <p>Enregistrez votre place et retrouvez-la facilement</p>
+    </div>
+
+    <!-- Pas de parking -->
+    <div id="no-parking" class="empty-state">
+      <div class="icon">📍</div>
+      <strong>Aucun parking enregistré</strong>
+      <p>Appuyez sur le bouton ci-dessous pour enregistrer votre voiture.</p>
+    </div>
+
+    <!-- Parking enregistré -->
+    <div id="has-parking" style="display:none;">
+
+      <!-- Chronomètre -->
+      <div class="timer-card">
+        <div class="timer-icon">⏱️</div>
+        <div>
+          <div class="timer-label">Temps de stationnement</div>
+          <div class="timer-value" id="timer-display">00:00:00</div>
+          <div class="timer-since" id="timer-since"></div>
+        </div>
+      </div>
+
+      <!-- Infos parking -->
+      <div class="card">
+        <p class="section-title">Votre voiture est ici</p>
+        <img id="home-photo" class="park-photo" src="" alt="Photo du parking" />
+        <p id="home-address" class="park-address"></p>
+        <p id="home-coords" class="park-coords"></p>
+        <p id="home-note" class="park-note"></p>
+        <div id="home-gps-metrics" style="display:none; margin-top:10px;">
+          <div style="height:0.5px; background:var(--border); margin-bottom:10px;"></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:var(--surface2); border-radius:var(--radius-sm); padding:8px 10px; text-align:center;">
+              <div style="font-size:15px; margin-bottom:2px;">🎯</div>
+              <div id="home-metric-accuracy" style="font-size:14px; font-weight:600; color:var(--text); font-variant-numeric:tabular-nums;"></div>
+              <div style="font-size:11px; color:var(--text3);">Précision enregistrée</div>
+            </div>
+            <div style="background:var(--surface2); border-radius:var(--radius-sm); padding:8px 10px; text-align:center;">
+              <div style="font-size:15px; margin-bottom:2px;">📶</div>
+              <div id="home-metric-quality" style="font-size:14px; font-weight:600; color:var(--text);"></div>
+              <div style="font-size:11px; color:var(--text3);">Qualité GPS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <p class="gps-title">Ouvrir l'itinéraire à pied avec :</p>
+      <div class="gps-apps">
+        <div class="gps-app-btn" onclick="openNav('google')">
+          <span class="gps-app-icon">🗺️</span>Google Maps
+        </div>
+        <div class="gps-app-btn" onclick="openNav('apple')">
+          <span class="gps-app-icon">🍎</span>Plans
+        </div>
+        <div class="gps-app-btn" onclick="openNav('waze')">
+          <span class="gps-app-icon">🚗</span>Waze
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goEdit()">✏️ Modifier</button>
+        <button class="btn btn-danger" onclick="deletePark()">🗑️ Effacer</button>
+      </div>
+    </div>
+
+    <div class="divider" id="home-divider"></div>
+    <button class="btn btn-primary" onclick="showScreen('screen-save')">➕ Enregistrer ma voiture ici</button>
+  </div>
+
+  <!-- ═══ ÉCRAN ENREGISTREMENT ═══ -->
+  <div class="screen" id="screen-save">
+    <div class="page-header">
+      <button class="back-btn" onclick="showScreen('screen-home')">←</button>
+      <h1>Enregistrer ma voiture</h1>
+    </div>
+
+    <!-- GPS -->
+    <div class="card">
+      <p class="section-title">Localisation GPS</p>
+      <div id="gps-status" class="status status-info">Récupération de votre position…</div>
+      <div class="gps-row">
+        <div>
+          <label>Latitude</label>
+          <input type="text" id="lat" placeholder="48.8566" inputmode="decimal" />
+        </div>
+        <div>
+          <label>Longitude</label>
+          <input type="text" id="lng" placeholder="2.3522" inputmode="decimal" />
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="getGPS()" title="Relancer la géolocalisation">📡</button>
+      </div>
+      <div class="gps-metrics" id="gps-metrics" style="display:none;">
+        <div class="gps-metric">
+          <div class="gps-metric-icon">🎯</div>
+          <div class="gps-metric-value" id="metric-accuracy">—</div>
+          <div class="gps-metric-label">Précision</div>
+        </div>
+        <div class="gps-metric">
+          <div class="gps-metric-icon">📶</div>
+          <div class="gps-metric-value" id="metric-quality">—</div>
+          <div class="gps-metric-label">Qualité</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Adresse -->
+    <div class="card">
+      <p class="section-title">Adresse</p>
+      <label>Rue / lieu</label>
+      <input type="text" id="address" placeholder="12 rue de la Paix, Paris" style="margin-bottom:10px;" />
+      <label>Note (niveau, allée, repère…)</label>
+      <textarea id="note" placeholder="Niveau -2, allée B, près de l'ascenseur…"></textarea>
+    </div>
+
+    <!-- Photo -->
+    <div class="card">
+      <p class="section-title">Photo de la place</p>
+      <div class="photo-area" id="photo-area" onclick="document.getElementById('fileInput').click()">
+        <img id="photo-preview" src="" alt="" />
+        <div class="photo-placeholder" id="photo-placeholder">
+          <div style="font-size:36px; margin-bottom:8px;">📷</div>
+          <div style="font-size:14px;">Appuyez pour prendre une photo<br>ou en choisir une depuis la galerie</div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handlePhoto(this)" />
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">📷 Caméra / Galerie</button>
+        <button class="btn btn-secondary btn-sm" id="remove-photo-btn" onclick="removePhoto()" style="display:none;">✕ Supprimer la photo</button>
+      </div>
+    </div>
+
+    <div id="save-status"></div>
+    <button class="btn btn-primary" onclick="savePark()">💾 Enregistrer ma place</button>
+    <div style="height:1.5rem;"></div>
+  </div>
+
+</div>
+
+<script>
+  /* ── État ── */
+  let photoData = null;
+  let timerInterval = null;
+
+  /* ── Navigation ── */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+    if (id === 'screen-home') refreshHome();
+    if (id === 'screen-save') { getGPS(); loadEditData(); }
+  }
+
+  function goEdit() { showScreen('screen-save'); }
+
+  /* ── GPS ── */
+  function getGPS() {
+    const st = document.getElementById('gps-status');
+    st.className = 'status status-info';
+    st.textContent = 'Récupération de votre position…';
+    document.getElementById('gps-metrics').style.display = 'none';
+
+    if (!navigator.geolocation) {
+      st.className = 'status status-error';
+      st.textContent = 'Géolocalisation non disponible sur cet appareil.';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const c = pos.coords;
+        document.getElementById('lat').value = c.latitude.toFixed(6);
+        document.getElementById('lng').value = c.longitude.toFixed(6);
+
+        // Précision horizontale (toujours disponible)
+        const acc = Math.round(c.accuracy);
+        const accEl = document.getElementById('metric-accuracy');
+        accEl.textContent = '± ' + acc + ' m';
+        accEl.className = 'gps-metric-value' + (acc <= 10 ? ' good' : acc <= 30 ? ' ok' : ' bad');
+
+        // Nombre de satellites : via l'API expérimentale ou estimation via précision
+        const satEl = document.getElementById('metric-satellites');
+        if (c.satellites !== undefined && c.satellites !== null) {
+          // Disponible sur certains navigateurs (expérimental)
+          satEl.textContent = c.satellites;
+          satEl.className = 'gps-metric-value' + (c.satellites >= 8 ? ' good' : c.satellites >= 4 ? ' ok' : ' bad');
+        } else {
+          // Estimation indicative basée sur la précision
+          let estSat, satClass;
+          if (acc <= 5)       { estSat = '≥ 10'; satClass = ' good'; }
+          else if (acc <= 10) { estSat = '8–10'; satClass = ' good'; }
+          else if (acc <= 20) { estSat = '5–8';  satClass = ' ok'; }
+          else if (acc <= 50) { estSat = '4–6';  satClass = ' ok'; }
+          else                { estSat = '< 4';  satClass = ' bad'; }
+          satEl.textContent = estSat;
+          satEl.className = 'gps-metric-value' + satClass;
+        }
+
+        // Qualité globale
+        const qualEl = document.getElementById('metric-quality');
+        let qualTxt, qualClass;
+        if (acc <= 10)      { qualTxt = 'Excellente'; qualClass = ' good'; }
+        else if (acc <= 25) { qualTxt = 'Bonne';      qualClass = ' good'; }
+        else if (acc <= 60) { qualTxt = 'Moyenne';    qualClass = ' ok'; }
+        else                { qualTxt = 'Faible';     qualClass = ' bad'; }
+        qualEl.textContent = qualTxt;
+        qualEl.className = 'gps-metric-value' + qualClass;
+
+        document.getElementById('gps-metrics').style.display = 'grid';
+        st.className = 'status status-success';
+        st.textContent = '✓ Position GPS récupérée avec succès';
+      },
+      () => {
+        st.className = 'status status-error';
+        st.textContent = 'Position indisponible. Vous pouvez la saisir manuellement.';
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  }
+
+  /* ── Photo ── */
+  function handlePhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      photoData = e.target.result;
+      const preview = document.getElementById('photo-preview');
+      preview.src = photoData;
+      preview.style.display = 'block';
+      document.getElementById('photo-placeholder').style.display = 'none';
+      document.getElementById('remove-photo-btn').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removePhoto() {
+    photoData = null;
+    const preview = document.getElementById('photo-preview');
+    preview.src = '';
+    preview.style.display = 'none';
+    document.getElementById('photo-placeholder').style.display = 'flex';
+    document.getElementById('remove-photo-btn').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+  }
+
+  /* ── Sauvegarde ── */
+  function savePark() {
+    const lat = document.getElementById('lat').value.trim();
+    const lng = document.getElementById('lng').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const note = document.getElementById('note').value.trim();
+    const st = document.getElementById('save-status');
+
+    if (!lat || !lng) {
+      st.innerHTML = '<div class="status status-error">Veuillez renseigner les coordonnées GPS.</div>';
+      return;
+    }
+
+    // Conserver l'heure de début si une entrée existe déjà (modification)
+    let parkedAt;
+    const existing = localStorage.getItem('maVoiture');
+    if (existing) {
+      try { parkedAt = JSON.parse(existing).parkedAt || new Date().toISOString(); }
+      catch { parkedAt = new Date().toISOString(); }
+    } else {
+      parkedAt = new Date().toISOString();
+    }
+
+    const data = { lat, lng, address, note, photo: photoData, parkedAt,
+      accuracy: document.getElementById('metric-accuracy').textContent || null,
+      quality: document.getElementById('metric-quality').textContent || null
+    };
+
+    try {
+      localStorage.setItem('maVoiture', JSON.stringify(data));
+      st.innerHTML = '<div class="status status-success">✓ Voiture enregistrée !</div>';
+      setTimeout(() => showScreen('screen-home'), 900);
+    } catch (e) {
+      // Quota dépassé : on tente sans photo
+      const dataNoPhoto = { lat, lng, address, note, photo: null, parkedAt };
+      try {
+        localStorage.setItem('maVoiture', JSON.stringify(dataNoPhoto));
+        st.innerHTML = '<div class="status status-info">✓ Enregistré (photo omise : mémoire du navigateur insuffisante).</div>';
+        setTimeout(() => showScreen('screen-home'), 1200);
+      } catch {
+        st.innerHTML = '<div class="status status-error">Erreur de sauvegarde. Mémoire locale pleine.</div>';
+      }
+    }
+  }
+
+  /* ── Suppression ── */
+  function deletePark() {
+    if (!confirm('Effacer les informations de stationnement ?')) return;
+    localStorage.removeItem('maVoiture');
+    stopTimer();
+    refreshHome();
+  }
+
+  /* ── Chronomètre ── */
+  function formatDuration(ms) {
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+  }
+
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  function startTimer(parkedAt) {
+    stopTimer();
+    const parkedDate = new Date(parkedAt);
+    const sinceStr = parkedDate.toLocaleString('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+      hour: '2-digit', minute: '2-digit'
+    });
+    document.getElementById('timer-since').textContent = 'Depuis le ' + sinceStr;
+
+    function tick() {
+      const elapsed = Date.now() - parkedDate.getTime();
+      const el = document.getElementById('timer-display');
+      el.textContent = formatDuration(elapsed);
+      const hours = elapsed / 3_600_000;
+      el.className = 'timer-value' + (hours >= 3 ? ' alert' : hours >= 1 ? ' warn' : '');
+    }
+    tick();
+    timerInterval = setInterval(tick, 1000);
+  }
+
+  /* ── Rafraîchissement accueil ── */
+  function refreshHome() {
+    stopTimer();
+    const raw = localStorage.getItem('maVoiture');
+    const noPark = document.getElementById('no-parking');
+    const hasPark = document.getElementById('has-parking');
+    const divider = document.getElementById('home-divider');
+
+    if (!raw) {
+      noPark.style.display = 'block';
+      hasPark.style.display = 'none';
+      divider.style.display = 'block';
+      return;
+    }
+
+    let d;
+    try { d = JSON.parse(raw); } catch { localStorage.removeItem('maVoiture'); return; }
+
+    noPark.style.display = 'none';
+    hasPark.style.display = 'block';
+    divider.style.display = 'none';
+
+    const photo = document.getElementById('home-photo');
+    if (d.photo) { photo.src = d.photo; photo.style.display = 'block'; }
+    else { photo.style.display = 'none'; }
+
+    document.getElementById('home-address').textContent = d.address || 'Adresse non renseignée';
+    document.getElementById('home-coords').textContent = (d.lat && d.lng) ? d.lat + ', ' + d.lng : '';
+    document.getElementById('home-note').textContent = d.note || '';
+
+    const metricsDiv = document.getElementById('home-gps-metrics');
+    if (d.accuracy || d.satellites || d.quality) {
+      document.getElementById('home-metric-accuracy').textContent = d.accuracy || '—';
+      document.getElementById('home-metric-quality').textContent = d.quality || '—';
+      metricsDiv.style.display = 'block';
+    } else {
+      metricsDiv.style.display = 'none';
+    }
+
+    if (d.parkedAt) startTimer(d.parkedAt);
+  }
+
+  /* ── Chargement pour édition ── */
+  function loadEditData() {
+    const raw = localStorage.getItem('maVoiture');
+    photoData = null;
+    removePhoto();
+    if (!raw) return;
+    let d;
+    try { d = JSON.parse(raw); } catch { return; }
+    document.getElementById('lat').value = d.lat || '';
+    document.getElementById('lng').value = d.lng || '';
+    document.getElementById('address').value = d.address || '';
+    document.getElementById('note').value = d.note || '';
+    if (d.photo) {
+      photoData = d.photo;
+      const preview = document.getElementById('photo-preview');
+      preview.src = d.photo;
+      preview.style.display = 'block';
+      document.getElementById('photo-placeholder').style.display = 'none';
+      document.getElementById('remove-photo-btn').style.display = 'inline-block';
+    }
+  }
+
+  /* ── Navigation GPS ── */
+  function openNav(app) {
+    const raw = localStorage.getItem('maVoiture');
+    if (!raw) return;
+    let d;
+    try { d = JSON.parse(raw); } catch { return; }
+    const lat = encodeURIComponent(d.lat);
+    const lng = encodeURIComponent(d.lng);
+    let url = '';
+    if (app === 'google') url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+    else if (app === 'apple') url = `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=w`;
+    else if (app === 'waze') url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+    window.location.href = url;
+  }
+
+  /* ── Init ── */
+  refreshHome();
+</script>
+</body>
+</html>
