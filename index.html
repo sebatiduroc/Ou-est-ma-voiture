@@ -329,11 +329,25 @@
       <!-- Chronomètre -->
       <div class="timer-card">
         <div class="timer-icon">⏱️</div>
-        <div>
+        <div style="flex:1;">
           <div class="timer-label">Temps de stationnement</div>
           <div class="timer-value" id="timer-display">00:00:00</div>
           <div class="timer-since" id="timer-since"></div>
         </div>
+      </div>
+
+      <!-- Distance à pied -->
+      <div class="timer-card" id="distance-card" style="display:none;">
+        <div class="timer-icon">🚶</div>
+        <div style="flex:1;">
+          <div class="timer-label">Distance à pied jusqu'à la voiture</div>
+          <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
+            <div class="timer-value" id="distance-display" style="font-size:22px;">—</div>
+            <div id="walk-time" style="font-size:15px; color:var(--text2); font-weight:500;"></div>
+          </div>
+          <div id="distance-status" style="font-size:12px; color:var(--text3); margin-top:2px;"></div>
+        </div>
+        <button onclick="fetchDistance()" title="Actualiser" style="background:none; border:none; font-size:18px; cursor:pointer; color:var(--text3); flex-shrink:0; padding:4px;">↻</button>
       </div>
 
       <!-- Infos parking -->
@@ -381,7 +395,7 @@
     </div>
 
     <div class="divider" id="home-divider"></div>
-    <button class="btn btn-primary" onclick="showScreen('screen-save')">➕ Enregistrer ma voiture ici</button>
+    <button id="btn-register" class="btn btn-primary" onclick="showScreen('screen-save')">➕ Enregistrer ma voiture ici</button>
   </div>
 
   <!-- ═══ ÉCRAN ENREGISTREMENT ═══ -->
@@ -676,6 +690,7 @@
       noPark.style.display = 'block';
       hasPark.style.display = 'none';
       divider.style.display = 'block';
+      document.getElementById('btn-register').style.display = 'block';
       return;
     }
 
@@ -685,6 +700,7 @@
     noPark.style.display = 'none';
     hasPark.style.display = 'block';
     divider.style.display = 'none';
+    document.getElementById('btn-register').style.display = 'none';
 
     const photo = document.getElementById('home-photo');
     if (d.photo) { photo.src = d.photo; photo.style.display = 'block'; }
@@ -704,6 +720,7 @@
     }
 
     if (d.parkedAt) startTimer(d.parkedAt);
+    fetchDistance();
   }
 
   /* ── Chargement pour édition ── */
@@ -741,6 +758,65 @@
     else if (app === 'apple') url = `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=w`;
     else if (app === 'waze') url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
     window.location.href = url;
+  }
+
+  /* ── Distance à pied via OSRM ── */
+  function fetchDistance() {
+    const raw = localStorage.getItem('maVoiture');
+    if (!raw) return;
+    let d;
+    try { d = JSON.parse(raw); } catch { return; }
+    if (!d.lat || !d.lng) return;
+
+    const card = document.getElementById('distance-card');
+    const display = document.getElementById('distance-display');
+    const walkTime = document.getElementById('walk-time');
+    const status = document.getElementById('distance-status');
+
+    card.style.display = 'flex';
+    display.textContent = '…';
+    walkTime.textContent = '';
+    status.textContent = 'Localisation en cours…';
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+        status.textContent = 'Calcul de l'itinéraire…';
+
+        const url = `https://router.project-osrm.org/route/v1/foot/${userLng},${userLat};${d.lng},${d.lat}?overview=false`;
+
+        fetch(url)
+          .then(r => r.json())
+          .then(data => {
+            if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
+              display.textContent = '—';
+              status.textContent = 'Itinéraire indisponible';
+              return;
+            }
+            const route = data.routes[0];
+            const meters = Math.round(route.distance);
+            const seconds = Math.round(route.duration);
+            const minutes = Math.round(seconds / 60);
+
+            display.textContent = meters >= 1000
+              ? (meters / 1000).toFixed(1) + ' km'
+              : meters + ' m';
+
+            walkTime.textContent = minutes < 1 ? '< 1 min' : minutes + ' min à pied';
+            status.textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          })
+          .catch(() => {
+            display.textContent = '—';
+            status.textContent = 'Erreur réseau. Vérifiez votre connexion.';
+          });
+      },
+      () => {
+        display.textContent = '—';
+        status.textContent = 'Impossible d'obtenir votre position.';
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }
 
   /* ── Init ── */
