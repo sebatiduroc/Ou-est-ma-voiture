@@ -485,32 +485,16 @@
     navigator.geolocation.getCurrentPosition(
       pos => {
         const c = pos.coords;
-        document.getElementById('lat').value = c.latitude.toFixed(6);
-        document.getElementById('lng').value = c.longitude.toFixed(6);
+        const lat = c.latitude.toFixed(6);
+        const lng = c.longitude.toFixed(6);
+        document.getElementById('lat').value = lat;
+        document.getElementById('lng').value = lng;
 
-        // Précision horizontale (toujours disponible)
+        // Précision horizontale
         const acc = Math.round(c.accuracy);
         const accEl = document.getElementById('metric-accuracy');
         accEl.textContent = '± ' + acc + ' m';
         accEl.className = 'gps-metric-value' + (acc <= 10 ? ' good' : acc <= 30 ? ' ok' : ' bad');
-
-        // Nombre de satellites : via l'API expérimentale ou estimation via précision
-        const satEl = document.getElementById('metric-satellites');
-        if (c.satellites !== undefined && c.satellites !== null) {
-          // Disponible sur certains navigateurs (expérimental)
-          satEl.textContent = c.satellites;
-          satEl.className = 'gps-metric-value' + (c.satellites >= 8 ? ' good' : c.satellites >= 4 ? ' ok' : ' bad');
-        } else {
-          // Estimation indicative basée sur la précision
-          let estSat, satClass;
-          if (acc <= 5)       { estSat = '≥ 10'; satClass = ' good'; }
-          else if (acc <= 10) { estSat = '8–10'; satClass = ' good'; }
-          else if (acc <= 20) { estSat = '5–8';  satClass = ' ok'; }
-          else if (acc <= 50) { estSat = '4–6';  satClass = ' ok'; }
-          else                { estSat = '< 4';  satClass = ' bad'; }
-          satEl.textContent = estSat;
-          satEl.className = 'gps-metric-value' + satClass;
-        }
 
         // Qualité globale
         const qualEl = document.getElementById('metric-quality');
@@ -524,7 +508,29 @@
 
         document.getElementById('gps-metrics').style.display = 'grid';
         st.className = 'status status-success';
-        st.textContent = '✓ Position GPS récupérée avec succès';
+        st.textContent = '✓ Position GPS récupérée';
+
+        // Géocodage inverse : remplir l'adresse automatiquement si vide
+        const addrField = document.getElementById('address');
+        if (!addrField.value.trim()) {
+          st.textContent = '✓ Position récupérée — recherche de l\'adresse…';
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=fr`)
+            .then(r => r.json())
+            .then(data => {
+              if (data && data.address) {
+                const a = data.address;
+                const parts = [
+                  (a.house_number ? a.house_number + ' ' : '') + (a.road || a.pedestrian || a.footway || ''),
+                  a.postcode ? a.postcode + ' ' + (a.city || a.town || a.village || a.hamlet || '') : (a.city || a.town || a.village || a.hamlet || '')
+                ].filter(Boolean);
+                addrField.value = parts.join(', ');
+              }
+              st.textContent = '✓ Position GPS récupérée avec succès';
+            })
+            .catch(() => {
+              st.textContent = '✓ Position GPS récupérée avec succès';
+            });
+        }
       },
       () => {
         st.className = 'status status-error';
@@ -538,16 +544,28 @@
   function handlePhoto(input) {
     const file = input.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      photoData = e.target.result;
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      // Redimensionner : max 1200px sur le grand côté, qualité 0.75
+      const MAX = 1200;
+      let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      photoData = canvas.toDataURL('image/jpeg', 0.75);
       const preview = document.getElementById('photo-preview');
       preview.src = photoData;
       preview.style.display = 'block';
       document.getElementById('photo-placeholder').style.display = 'none';
       document.getElementById('remove-photo-btn').style.display = 'inline-block';
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   function removePhoto() {
