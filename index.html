@@ -782,7 +782,7 @@
       pos => {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
-        status.textContent = 'Calcul de l'itinéraire…';
+        status.textContent = "Calcul de l'itinéraire…";
 
         const url = `https://router.project-osrm.org/route/v1/foot/${userLng},${userLat};${d.lng},${d.lat}?overview=false`;
 
@@ -813,7 +813,7 @@
       },
       () => {
         display.textContent = '—';
-        status.textContent = 'Impossible d'obtenir votre position.';
+        status.textContent = "Impossible d'obtenir votre position.";
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
