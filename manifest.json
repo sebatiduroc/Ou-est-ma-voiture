@@ -1,0 +1,25 @@
+{
+  "name": "Où est ma voiture ?",
+  "short_name": "Ma voiture",
+  "description": "Enregistrez votre place de parking et retrouvez votre voiture facilement.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#185FA5",
+  "theme_color": "#185FA5",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
