@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -798,14 +798,22 @@
             }
             const route = data.routes[0];
             const meters = Math.round(route.distance);
-            const seconds = Math.round(route.duration);
-            const minutes = Math.round(seconds / 60);
+            // Temps calculé sur 4 km/h (vitesse de marche réaliste)
+            const minutes = Math.round((meters / 1000) / 4 * 60);
 
             display.textContent = meters >= 1000
               ? (meters / 1000).toFixed(1) + ' km'
               : meters + ' m';
 
-            walkTime.textContent = minutes < 1 ? '< 1 min' : minutes + ' min à pied';
+            let walkStr;
+            if (minutes < 1) walkStr = '< 1 min à pied';
+            else if (minutes < 60) walkStr = minutes + ' min à pied';
+            else {
+              const h = Math.floor(minutes / 60);
+              const m = minutes % 60;
+              walkStr = m > 0 ? h + 'h ' + m + 'min à pied' : h + 'h à pied';
+            }
+            walkTime.textContent = walkStr;
             status.textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
           })
           .catch(() => {
