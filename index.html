@@ -1,826 +1,455 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <meta name="theme-color" content="#185FA5" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Où est ma voiture ?" />
-  <title>Où est ma voiture ?</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Compteur moto</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#050505">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-inset">
+  <meta name="apple-mobile-web-app-title" content="Moto GPS">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #050505; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 24px 16px; font-family: monospace; }
+    .wrap { background: #0d0d0d; border-radius: 16px; padding: 20px; border: 1px solid #1a1a1a; width: 100%; max-width: 420px; }
 
-    :root {
-      --bg: #f5f5f0;
-      --surface: #ffffff;
-      --surface2: #f0eeea;
-      --border: rgba(0,0,0,0.12);
-      --border2: rgba(0,0,0,0.22);
-      --text: #1a1a18;
-      --text2: #5f5e5a;
-      --text3: #888780;
-      --blue: #185FA5;
-      --blue-bg: #e6f1fb;
-      --blue-text: #0c447c;
-      --green: #3b6d11;
-      --green-bg: #eaf3de;
-      --green-text: #27500a;
-      --red: #a32d2d;
-      --red-bg: #fcebeb;
-      --red-text: #791f1f;
-      --amber: #ba7517;
-      --amber-bg: #faeeda;
-      --radius: 10px;
-      --radius-sm: 7px;
-    }
+    /* GPS status bar */
+    .gps-bar { display: flex; align-items: center; margin-bottom: 16px; padding: 8px 12px; background: #111; border-radius: 8px; border: 1px solid #1e1e1e; gap: 8px; }
+    .gps-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; }
+    .gps-dot.searching { background: #ffaa00; animation: blink 1s infinite; }
+    .gps-dot.good { background: #00ff88; }
+    .gps-dot.lost { background: #ff3333; animation: blink 0.5s infinite; }
+    .gps-label { font-size: 11px; color: #555; letter-spacing: 1px; flex: 1; }
+    .gps-detail { font-size: 11px; color: #444; }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1c1c1a;
-        --surface: #2c2c2a;
-        --surface2: #222220;
-        --border: rgba(255,255,255,0.1);
-        --border2: rgba(255,255,255,0.2);
-        --text: #f0eeea;
-        --text2: #b4b2a9;
-        --text3: #888780;
-        --blue: #378add;
-        --blue-bg: #042c53;
-        --blue-text: #b5d4f4;
-        --green: #639922;
-        --green-bg: #173404;
-        --green-text: #c0dd97;
-        --red: #e24b4a;
-        --red-bg: #501313;
-        --red-text: #f7c1c1;
-        --amber: #ef9f27;
-        --amber-bg: #412402;
-      }
-    }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-
-    .app {
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 0 1rem 2rem;
-      min-height: 100vh;
-    }
-
-    .screen { display: none; }
-    .screen.active { display: block; }
-
-    /* Header */
-    .header {
-      text-align: center;
-      padding: 2.5rem 0 1.5rem;
-    }
-    .header-icon { font-size: 56px; margin-bottom: 10px; }
-    .header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-    .header p { font-size: 14px; color: var(--text2); }
+    /* Vitesse principale */
+    .speed-display { text-align: center; padding: 20px 0 14px; border-bottom: 1px solid #1a1a1a; margin-bottom: 16px; }
+    .speed-num { font-size: 96px; font-weight: 500; line-height: 1; letter-spacing: -4px; color: #fff; transition: color 0.3s, opacity 0.3s; }
+    .speed-num.gps-lost { opacity: 0.35; }
+    .speed-unit { font-size: 18px; color: #555; letter-spacing: 3px; margin-top: 4px; }
+    .accel-row { display: flex; justify-content: center; align-items: baseline; gap: 8px; margin-top: 10px; }
+    .accel-val { font-size: 28px; font-weight: 500; }
+    .accel-unit { font-size: 13px; color: #555; }
+    .bar-outer { background: #0a0a0a; border-radius: 4px; height: 4px; margin: 10px auto 0; overflow: hidden; width: 80%; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s, background 0.4s; }
 
     /* Cards */
-    .card {
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem 1.25rem;
-      margin-bottom: 1rem;
-    }
+    .sep { border-top: 1px solid #1a1a1a; margin: 12px 0; }
+    .section-title { font-size: 10px; color: #333; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .stat-card { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 12px 14px; }
+    .stat-label { font-size: 11px; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-val { font-size: 22px; font-weight: 500; }
+    .stat-sub { font-size: 11px; color: #444; margin-top: 2px; }
+    .sprint-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .sprint-card { background: #111; border: 1px solid #1e1e1e; border-radius: 10px; padding: 12px 14px; }
+    .sprint-label { font-size: 10px; color: #555; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+    .sprint-range { font-size: 12px; color: #333; margin-bottom: 6px; }
+    .sprint-time { font-size: 26px; font-weight: 500; }
+    .sprint-status { font-size: 10px; margin-top: 2px; color: #444; }
 
-    .section-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text3);
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      margin-bottom: 12px;
-    }
+    /* Boutons */
+    .controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .btn { padding: 8px 20px; border-radius: 8px; border: 1px solid #2a2a2a; background: #151515; color: #888; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .btn:hover { background: #1e1e1e; color: #bbb; border-color: #333; }
+    .btn.danger { background: #1a0a0a; border-color: #441111; color: #ff5555; }
+    .btn.danger:hover { border-color: #661111; color: #ff3333; }
+    .btn.lock { background: #0a0a1a; border-color: #112244; color: #4488cc; }
+    .btn.lock:hover { border-color: #224488; color: #66aaff; }
+    .btn.lock.engaged { background: #0a1a0a; border-color: #114422; color: #44cc88; }
 
-    /* Form */
-    label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px; }
+    /* Écran d'accueil */
+    #screen-init { text-align: center; padding: 30px 0; }
+    .big-btn { display: inline-block; padding: 16px 40px; border-radius: 12px; border: 1px solid #00aa55; background: #0a1a0a; color: #00ff88; font-size: 16px; cursor: pointer; font-family: inherit; letter-spacing: 2px; }
+    .big-btn:hover { background: #0f2a0f; }
+    #screen-init p { font-size: 11px; color: #333; margin-top: 16px; line-height: 1.8; letter-spacing: 0.5px; }
+    #screen-main { display: none; }
 
-    input[type="text"], textarea {
-      width: 100%;
-      font-size: 15px;
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
-      border: 0.5px solid var(--border2);
-      background: var(--surface2);
-      color: var(--text);
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    input[type="text"]:focus, textarea:focus {
-      border-color: var(--blue);
-    }
-    textarea { resize: none; height: 64px; }
+    /* Pocket lock */
+    #lock-overlay { display: none; position: fixed; inset: 0; z-index: 999; background: #000; flex-direction: column; align-items: center; justify-content: center; touch-action: none; user-select: none; }
+    #lock-overlay.visible { display: flex; }
+    #lock-ring { width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; position: relative; }
+    #lock-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+    #lock-ring circle.track { fill: none; stroke: #1a1a1a; stroke-width: 3; }
+    #lock-ring circle.progress { fill: none; stroke: #00ff88; stroke-width: 3; stroke-dasharray: 345; stroke-dashoffset: 345; transition: stroke-dashoffset 0.05s linear; }
+    #lock-icon { font-size: 36px; color: #333; z-index: 1; }
+    #lock-hint { margin-top: 28px; font-size: 12px; color: #333; letter-spacing: 2px; text-transform: uppercase; }
+    #lock-stats { position: absolute; bottom: 40px; display: flex; gap: 40px; }
+    .lock-stat { text-align: center; }
+    .lock-stat-val { font-size: 28px; font-weight: 500; color: #fff; }
+    .lock-stat-lbl { font-size: 10px; color: #333; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
 
-    /* Buttons */
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 13px;
-      border-radius: var(--radius-sm);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      text-align: center;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    .btn:active { opacity: 0.85; transform: scale(0.98); }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-secondary {
-      background: var(--surface2);
-      color: var(--text);
-      border: 0.5px solid var(--border2);
-    }
-    .btn-danger { background: var(--red); color: #fff; }
-    .btn-sm {
-      font-size: 13px;
-      padding: 8px 14px;
-      width: auto;
-      display: inline-block;
-    }
-    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
-    .btn-row .btn { flex: 1; }
-
-    /* Back button */
-    .back-btn {
-      background: none;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-      color: var(--text);
-      padding: 4px;
-      line-height: 1;
-    }
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 1.5rem;
-      padding-top: 1.5rem;
-    }
-    .page-header h1 { font-size: 20px; font-weight: 600; }
-
-    /* GPS row */
-    .gps-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
-    .gps-row > div { flex: 1; }
-
-    /* Status */
-    .status {
-      font-size: 13px;
-      padding: 9px 12px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 12px;
-    }
-    .status-info { background: var(--blue-bg); color: var(--blue-text); }
-    .status-success { background: var(--green-bg); color: var(--green-text); }
-    .status-error { background: var(--red-bg); color: var(--red-text); }
-
-    /* Photo */
-    .photo-area {
-      width: 100%;
-      height: 190px;
-      border: 1px dashed var(--border2);
-      border-radius: var(--radius-sm);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      background: var(--surface2);
-      overflow: hidden;
-      position: relative;
-    }
-    .photo-placeholder { text-align: center; color: var(--text3); pointer-events: none; }
-    .photo-area img { width: 100%; height: 100%; object-fit: cover; display: none; }
-    #fileInput { display: none; }
-
-    /* Timer */
-    .timer-card {
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem 1.25rem;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .timer-icon { font-size: 30px; flex-shrink: 0; }
-    .timer-label { font-size: 12px; color: var(--text3); margin-bottom: 2px; }
-    .timer-value {
-      font-size: 30px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      font-feature-settings: "tnum";
-      letter-spacing: 0.03em;
-      color: var(--text);
-      transition: color 0.5s;
-    }
-    .timer-value.warn { color: var(--amber); }
-    .timer-value.alert { color: var(--red); }
-    .timer-since { font-size: 12px; color: var(--text3); margin-top: 2px; }
-
-    /* Parking summary */
-    .park-photo {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: var(--radius-sm);
-      margin-bottom: 12px;
-      display: none;
-    }
-    .park-address { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-    .park-coords { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
-    .park-note { font-size: 14px; color: var(--text2); }
-
-    /* GPS apps */
-    .gps-apps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .gps-app-btn {
-      padding: 12px 6px;
-      border-radius: var(--radius-sm);
-      border: 0.5px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      text-align: center;
-      transition: background 0.15s;
-    }
-    .gps-app-btn:hover { background: var(--surface2); }
-    .gps-app-btn:active { transform: scale(0.97); }
-    .gps-app-icon { font-size: 24px; display: block; margin-bottom: 5px; }
-
-    /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 2.5rem 1rem;
-      color: var(--text2);
-    }
-    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-state strong { display: block; font-size: 16px; color: var(--text); margin-bottom: 6px; }
-    .empty-state p { font-size: 14px; }
-
-    .divider { border: none; border-top: 0.5px solid var(--border); margin: 1rem 0; }
-    .gps-title { font-size: 14px; color: var(--text2); text-align: center; margin-bottom: 10px; }
-
-    /* GPS metrics */
-    .gps-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .gps-metric {
-      background: var(--surface2);
-      border-radius: var(--radius-sm);
-      padding: 8px 10px;
-      text-align: center;
-    }
-    .gps-metric-icon { font-size: 16px; margin-bottom: 2px; }
-    .gps-metric-value {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-    .gps-metric-value.good { color: var(--green); }
-    .gps-metric-value.ok { color: var(--amber); }
-    .gps-metric-value.bad { color: var(--red); }
-    .gps-metric-label { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .recording-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff3333; margin-right: 6px; animation: blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
   </style>
 </head>
 <body>
-<div class="app">
+<div class="wrap">
 
-  <!-- ═══ ÉCRAN ACCUEIL ═══ -->
-  <div class="screen active" id="screen-home">
-    <div class="header">
-      <div class="header-icon">🅿️</div>
-      <h1>Où est ma voiture ?</h1>
-      <p>Enregistrez votre place et retrouvez-la facilement</p>
-    </div>
-
-    <!-- Pas de parking -->
-    <div id="no-parking" class="empty-state">
-      <div class="icon">📍</div>
-      <strong>Aucun parking enregistré</strong>
-      <p>Appuyez sur le bouton ci-dessous pour enregistrer votre voiture.</p>
-    </div>
-
-    <!-- Parking enregistré -->
-    <div id="has-parking" style="display:none;">
-
-      <!-- Chronomètre -->
-      <div class="timer-card">
-        <div class="timer-icon">⏱️</div>
-        <div style="flex:1;">
-          <div class="timer-label">Temps de stationnement</div>
-          <div class="timer-value" id="timer-display">00:00:00</div>
-          <div class="timer-since" id="timer-since"></div>
-        </div>
-      </div>
-
-      <!-- Distance à pied -->
-      <div class="timer-card" id="distance-card" style="display:none;">
-        <div class="timer-icon">🚶</div>
-        <div style="flex:1;">
-          <div class="timer-label">Distance à pied jusqu'à la voiture</div>
-          <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-            <div class="timer-value" id="distance-display" style="font-size:22px;">—</div>
-            <div id="walk-time" style="font-size:15px; color:var(--text2); font-weight:500;"></div>
-          </div>
-          <div id="distance-status" style="font-size:12px; color:var(--text3); margin-top:2px;"></div>
-        </div>
-        <button onclick="fetchDistance()" title="Actualiser" style="background:none; border:none; font-size:18px; cursor:pointer; color:var(--text3); flex-shrink:0; padding:4px;">↻</button>
-      </div>
-
-      <!-- Infos parking -->
-      <div class="card">
-        <p class="section-title">Votre voiture est ici</p>
-        <img id="home-photo" class="park-photo" src="" alt="Photo du parking" />
-        <p id="home-address" class="park-address"></p>
-        <p id="home-coords" class="park-coords"></p>
-        <p id="home-note" class="park-note"></p>
-        <div id="home-gps-metrics" style="display:none; margin-top:10px;">
-          <div style="height:0.5px; background:var(--border); margin-bottom:10px;"></div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <div style="background:var(--surface2); border-radius:var(--radius-sm); padding:8px 10px; text-align:center;">
-              <div style="font-size:15px; margin-bottom:2px;">🎯</div>
-              <div id="home-metric-accuracy" style="font-size:14px; font-weight:600; color:var(--text); font-variant-numeric:tabular-nums;"></div>
-              <div style="font-size:11px; color:var(--text3);">Précision enregistrée</div>
-            </div>
-            <div style="background:var(--surface2); border-radius:var(--radius-sm); padding:8px 10px; text-align:center;">
-              <div style="font-size:15px; margin-bottom:2px;">📶</div>
-              <div id="home-metric-quality" style="font-size:14px; font-weight:600; color:var(--text);"></div>
-              <div style="font-size:11px; color:var(--text3);">Qualité GPS</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <p class="gps-title">Ouvrir l'itinéraire à pied avec :</p>
-      <div class="gps-apps">
-        <div class="gps-app-btn" onclick="openNav('google')">
-          <span class="gps-app-icon">🗺️</span>Google Maps
-        </div>
-        <div class="gps-app-btn" onclick="openNav('apple')">
-          <span class="gps-app-icon">🍎</span>Plans
-        </div>
-        <div class="gps-app-btn" onclick="openNav('waze')">
-          <span class="gps-app-icon">🚗</span>Waze
-        </div>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="goEdit()">✏️ Modifier</button>
-        <button class="btn btn-danger" onclick="deletePark()">🗑️ Effacer</button>
-      </div>
-    </div>
-
-    <div class="divider" id="home-divider"></div>
-    <button id="btn-register" class="btn btn-primary" onclick="showScreen('screen-save')">➕ Enregistrer ma voiture ici</button>
+  <!-- Écran d'accueil -->
+  <div id="screen-init">
+    <div style="font-size:11px;color:#333;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px;">Compteur moto GPS</div>
+    <button class="big-btn" onclick="startGPS()">&#9654; Démarrer</button>
+    <p>L'application va demander l'accès au GPS.<br>Requiert HTTPS sur iOS Safari.</p>
   </div>
 
-  <!-- ═══ ÉCRAN ENREGISTREMENT ═══ -->
-  <div class="screen" id="screen-save">
-    <div class="page-header">
-      <button class="back-btn" onclick="showScreen('screen-home')">←</button>
-      <h1>Enregistrer ma voiture</h1>
+  <!-- Interface principale -->
+  <div id="screen-main">
+
+    <!-- Barre GPS -->
+    <div class="gps-bar">
+      <div class="gps-dot searching" id="gps-dot"></div>
+      <div class="gps-label" id="gps-label">Recherche GPS…</div>
+      <div class="gps-detail" id="gps-detail"></div>
     </div>
 
-    <!-- GPS -->
-    <div class="card">
-      <p class="section-title">Localisation GPS</p>
-      <div id="gps-status" class="status status-info">Récupération de votre position…</div>
-      <div class="gps-row">
-        <div>
-          <label>Latitude</label>
-          <input type="text" id="lat" placeholder="48.8566" inputmode="decimal" />
-        </div>
-        <div>
-          <label>Longitude</label>
-          <input type="text" id="lng" placeholder="2.3522" inputmode="decimal" />
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="getGPS()" title="Relancer la géolocalisation">📡</button>
+    <!-- Vitesse -->
+    <div class="speed-display">
+      <div class="speed-num" id="spd">000</div>
+      <div class="speed-unit">KM / H</div>
+      <div class="accel-row">
+        <span class="accel-val" id="acc" style="color:#ffaa00;">0.00</span>
+        <span class="accel-unit">m/s²</span>
       </div>
-      <div class="gps-metrics" id="gps-metrics" style="display:none;">
-        <div class="gps-metric">
-          <div class="gps-metric-icon">🎯</div>
-          <div class="gps-metric-value" id="metric-accuracy">—</div>
-          <div class="gps-metric-label">Précision</div>
-        </div>
-        <div class="gps-metric">
-          <div class="gps-metric-icon">📶</div>
-          <div class="gps-metric-value" id="metric-quality">—</div>
-          <div class="gps-metric-label">Qualité</div>
-        </div>
+      <div class="bar-outer">
+        <div class="bar-fill" id="speed-bar" style="width:0%;background:#00ff88;"></div>
       </div>
     </div>
 
-    <!-- Adresse -->
-    <div class="card">
-      <p class="section-title">Adresse</p>
-      <label>Rue / lieu</label>
-      <input type="text" id="address" placeholder="12 rue de la Paix, Paris" style="margin-bottom:10px;" />
-      <label>Note (niveau, allée, repère…)</label>
-      <textarea id="note" placeholder="Niveau -2, allée B, près de l'ascenseur…"></textarea>
-    </div>
-
-    <!-- Photo -->
-    <div class="card">
-      <p class="section-title">Photo de la place</p>
-      <div class="photo-area" id="photo-area" onclick="document.getElementById('fileInput').click()">
-        <img id="photo-preview" src="" alt="" />
-        <div class="photo-placeholder" id="photo-placeholder">
-          <div style="font-size:36px; margin-bottom:8px;">📷</div>
-          <div style="font-size:14px;">Appuyez pour prendre une photo<br>ou en choisir une depuis la galerie</div>
-        </div>
+    <!-- Records -->
+    <div class="sep"></div>
+    <div class="section-title">Records</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Vmax atteinte</div>
+        <div class="stat-val" id="vmax" style="color:#00ff88;">0</div>
+        <div class="stat-sub">km/h</div>
       </div>
-      <input type="file" id="fileInput" accept="image/*" capture="environment" onchange="handlePhoto(this)" />
-      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">📷 Caméra / Galerie</button>
-        <button class="btn btn-secondary btn-sm" id="remove-photo-btn" onclick="removePhoto()" style="display:none;">✕ Supprimer la photo</button>
+      <div class="stat-card">
+        <div class="stat-label">Accél. max</div>
+        <div class="stat-val" id="amax" style="color:#ffaa00;">0.00</div>
+        <div class="stat-sub">m/s²</div>
       </div>
     </div>
 
-    <div id="save-status"></div>
-    <button class="btn btn-primary" onclick="savePark()">💾 Enregistrer ma place</button>
-    <div style="height:1.5rem;"></div>
+    <!-- Chronos -->
+    <div class="section-title">Chronos</div>
+    <div class="sprint-grid">
+      <div class="sprint-card">
+        <div class="sprint-label">Meilleur</div>
+        <div class="sprint-range" style="color:#00cc66;">0 → 100 km/h</div>
+        <div class="sprint-time" id="t0100" style="color:#00ff88;">--.-</div>
+        <div class="sprint-status" id="s0100">En attente</div>
+        <div class="bar-outer" style="margin-top:6px;"><div class="bar-fill" id="b0100" style="width:0%;background:#00ff88;"></div></div>
+      </div>
+      <div class="sprint-card">
+        <div class="sprint-label">Meilleur</div>
+        <div class="sprint-range" style="color:#cc8800;">80 → 120 km/h</div>
+        <div class="sprint-time" id="t80120" style="color:#ffaa00;">--.-</div>
+        <div class="sprint-status" id="s80120">En attente</div>
+        <div class="bar-outer" style="margin-top:6px;"><div class="bar-fill" id="b80120" style="width:0%;background:#ffaa00;"></div></div>
+      </div>
+    </div>
+
+    <!-- Contrôles -->
+    <div class="controls">
+      <button class="btn danger" onclick="resetAll()">&#8635; Reset</button>
+      <button class="btn lock" id="btn-lock" onclick="engagePocketLock()">&#128274; Mode poche</button>
+    </div>
+
   </div>
+</div>
 
+<!-- Pocket lock overlay -->
+<div id="lock-overlay">
+  <div id="lock-ring">
+    <svg viewBox="0 0 120 120">
+      <circle class="track" cx="60" cy="60" r="55"/>
+      <circle class="progress" id="lock-progress" cx="60" cy="60" r="55"/>
+    </svg>
+    <div id="lock-icon">&#128274;</div>
+  </div>
+  <div id="lock-hint">Maintenir 2s pour déverrouiller</div>
+  <div id="lock-stats">
+    <div class="lock-stat"><div class="lock-stat-val" id="lock-vmax">0</div><div class="lock-stat-lbl">km/h max</div></div>
+    <div class="lock-stat"><div class="lock-stat-val" id="lock-t0100">--</div><div class="lock-stat-lbl">0-100s</div></div>
+    <div class="lock-stat"><div class="lock-stat-val" id="lock-t80120">--</div><div class="lock-stat-lbl">80-120s</div></div>
+  </div>
 </div>
 
 <script>
-  /* ── État ── */
-  let photoData = null;
-  let timerInterval = null;
+  // ── État ──
+  let gpsWatchId = null;
+  let gpsLostTimer = null;
 
-  /* ── Navigation ── */
-  function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    window.scrollTo(0, 0);
-    if (id === 'screen-home') refreshHome();
-    if (id === 'screen-save') { getGPS(); loadEditData(); }
+  // Mesures
+  let speed = 0;           // km/h courant
+  let accel = 0;           // m/s² courant
+  let prevSpeedMs = null;  // m/s GPS précédent
+  let prevGpsTime = null;  // performance.now() du GPS précédent
+  let maxSpeed = 0;
+  let maxAccel = 0;
+
+  // Chronos
+  let best0100 = null, best80120 = null;
+  let sprint0100Active = false, sprint0100StartTime = null;
+  let sprint80120Active = false, sprint80120StartTime = null;
+
+  // ── Interpolation linéaire ──
+  // Retourne l'instant (ms) où la vitesse (km/h) a franchi 'threshold'
+  // entre le point (v0, t0) et le point (v1, t1)
+  function interpolateTime(v0, v1, threshold, t0, t1) {
+    const ratio = (threshold - v0) / (v1 - v0);
+    return t0 + ratio * (t1 - t0);
   }
 
-  function goEdit() { showScreen('screen-save'); }
-
-  /* ── GPS ── */
-  function getGPS() {
-    const st = document.getElementById('gps-status');
-    st.className = 'status status-info';
-    st.textContent = 'Récupération de votre position…';
-    document.getElementById('gps-metrics').style.display = 'none';
-
+  // ── Démarrage ──
+  function startGPS() {
     if (!navigator.geolocation) {
-      st.className = 'status status-error';
-      st.textContent = 'Géolocalisation non disponible sur cet appareil.';
+      alert("Géolocalisation non supportée par ce navigateur.");
       return;
     }
+    document.getElementById('screen-init').style.display = 'none';
+    document.getElementById('screen-main').style.display = 'block';
+    requestWakeLock();
 
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const c = pos.coords;
-        const lat = c.latitude.toFixed(6);
-        const lng = c.longitude.toFixed(6);
-        document.getElementById('lat').value = lat;
-        document.getElementById('lng').value = lng;
-
-        // Précision horizontale
-        const acc = Math.round(c.accuracy);
-        const accEl = document.getElementById('metric-accuracy');
-        accEl.textContent = '± ' + acc + ' m';
-        accEl.className = 'gps-metric-value' + (acc <= 10 ? ' good' : acc <= 30 ? ' ok' : ' bad');
-
-        // Qualité globale
-        const qualEl = document.getElementById('metric-quality');
-        let qualTxt, qualClass;
-        if (acc <= 10)      { qualTxt = 'Excellente'; qualClass = ' good'; }
-        else if (acc <= 25) { qualTxt = 'Bonne';      qualClass = ' good'; }
-        else if (acc <= 60) { qualTxt = 'Moyenne';    qualClass = ' ok'; }
-        else                { qualTxt = 'Faible';     qualClass = ' bad'; }
-        qualEl.textContent = qualTxt;
-        qualEl.className = 'gps-metric-value' + qualClass;
-
-        document.getElementById('gps-metrics').style.display = 'grid';
-        st.className = 'status status-success';
-        st.textContent = '✓ Position GPS récupérée';
-
-        // Géocodage inverse : remplir l'adresse automatiquement si vide
-        const addrField = document.getElementById('address');
-        if (!addrField.value.trim()) {
-          st.textContent = '✓ Position récupérée — recherche de l\'adresse…';
-          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=fr`)
-            .then(r => r.json())
-            .then(data => {
-              if (data && data.address) {
-                const a = data.address;
-                const parts = [
-                  (a.house_number ? a.house_number + ' ' : '') + (a.road || a.pedestrian || a.footway || ''),
-                  a.postcode ? a.postcode + ' ' + (a.city || a.town || a.village || a.hamlet || '') : (a.city || a.town || a.village || a.hamlet || '')
-                ].filter(Boolean);
-                addrField.value = parts.join(', ');
-              }
-              st.textContent = '✓ Position GPS récupérée avec succès';
-            })
-            .catch(() => {
-              st.textContent = '✓ Position GPS récupérée avec succès';
-            });
-        }
-      },
-      () => {
-        st.className = 'status status-error';
-        st.textContent = 'Position indisponible. Vous pouvez la saisir manuellement.';
-      },
-      { enableHighAccuracy: true, timeout: 12000 }
+    gpsWatchId = navigator.geolocation.watchPosition(
+      onGpsSuccess,
+      onGpsError,
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
   }
 
-  /* ── Photo ── */
-  function handlePhoto(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      // Redimensionner : max 1200px sur le grand côté, qualité 0.75
-      const MAX = 1200;
-      let { width: w, height: h } = img;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else       { w = Math.round(w * MAX / h); h = MAX; }
+  // ── Callback GPS ──
+  function onGpsSuccess(pos) {
+    const rawSpeedMs = pos.coords.speed;   // m/s — peut être null sur certains appareils
+    const accuracy   = pos.coords.accuracy; // mètres
+    const now = performance.now();
+
+    // Signal reçu : annuler le timer de perte
+    clearTimeout(gpsLostTimer);
+    setGpsStatus('good', accuracy);
+    scheduleGpsLostCheck();
+
+    // Si la vitesse GPS n'est pas disponible, on garde la dernière valeur connue
+    if (rawSpeedMs === null || rawSpeedMs === undefined || rawSpeedMs < 0) return;
+
+    const curSpeedKmh = rawSpeedMs * 3.6;
+    const prevKmh = speed; // vitesse avant ce tick, pour les chronos
+
+    // ── Accélération : différence de vitesse / différence de temps ──
+    if (prevSpeedMs !== null && prevGpsTime !== null) {
+      const dt = (now - prevGpsTime) / 1000;
+      // On ignore les dt trop grands (reprise après coupure signal > 3s)
+      if (dt > 0.05 && dt < 3.5) {
+        accel = (rawSpeedMs - prevSpeedMs) / dt;
+        if (Math.abs(accel) > maxAccel) maxAccel = Math.abs(accel);
       }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      photoData = canvas.toDataURL('image/jpeg', 0.75);
-      const preview = document.getElementById('photo-preview');
-      preview.src = photoData;
-      preview.style.display = 'block';
-      document.getElementById('photo-placeholder').style.display = 'none';
-      document.getElementById('remove-photo-btn').style.display = 'inline-block';
-    };
-    img.src = objectUrl;
-  }
-
-  function removePhoto() {
-    photoData = null;
-    const preview = document.getElementById('photo-preview');
-    preview.src = '';
-    preview.style.display = 'none';
-    document.getElementById('photo-placeholder').style.display = 'flex';
-    document.getElementById('remove-photo-btn').style.display = 'none';
-    document.getElementById('fileInput').value = '';
-  }
-
-  /* ── Sauvegarde ── */
-  function savePark() {
-    const lat = document.getElementById('lat').value.trim();
-    const lng = document.getElementById('lng').value.trim();
-    const address = document.getElementById('address').value.trim();
-    const note = document.getElementById('note').value.trim();
-    const st = document.getElementById('save-status');
-
-    if (!lat || !lng) {
-      st.innerHTML = '<div class="status status-error">Veuillez renseigner les coordonnées GPS.</div>';
-      return;
     }
 
-    // Conserver l'heure de début si une entrée existe déjà (modification)
-    let parkedAt;
-    const existing = localStorage.getItem('maVoiture');
-    if (existing) {
-      try { parkedAt = JSON.parse(existing).parkedAt || new Date().toISOString(); }
-      catch { parkedAt = new Date().toISOString(); }
-    } else {
-      parkedAt = new Date().toISOString();
+    // ── Mise à jour vitesse ──
+    speed = curSpeedKmh;
+    if (speed > maxSpeed) maxSpeed = speed;
+
+    // ── Chronos ──
+    // t0 = instant estimé du tick précédent, t1 = maintenant
+    const t0 = prevGpsTime !== null ? prevGpsTime : now;
+    processChronos(prevKmh, speed, t0, now);
+
+    prevSpeedMs  = rawSpeedMs;
+    prevGpsTime  = now;
+
+    updateUI();
+  }
+
+  function processChronos(v0, v1, t0, t1) {
+    // 0-100 — départ interpolé au passage de 1 km/h
+    if (!sprint0100Active && v0 < 1 && v1 >= 1) {
+      sprint0100Active   = true;
+      sprint0100StartTime = interpolateTime(v0, v1, 1, t0, t1);
+    }
+    // 0-100 — arrivée interpolée à 100 km/h
+    if (sprint0100Active && v0 < 100 && v1 >= 100) {
+      const tArr  = interpolateTime(v0, v1, 100, t0, t1);
+      const elapsed = (tArr - sprint0100StartTime) / 1000;
+      if (!best0100 || elapsed < best0100) best0100 = elapsed;
+      sprint0100Active = false;
+      flash('s0100', 'Nouveau chrono !', 'Meilleur temps');
+    }
+    // Annulation si on repasse sous 1 km/h avant 100
+    if (sprint0100Active && v1 < 1) {
+      sprint0100Active = false; sprint0100StartTime = null;
     }
 
-    const data = { lat, lng, address, note, photo: photoData, parkedAt,
-      accuracy: document.getElementById('metric-accuracy').textContent || null,
-      quality: document.getElementById('metric-quality').textContent || null
-    };
+    // 80-120 — départ interpolé à 80 km/h (seulement en accélération)
+    if (!sprint80120Active && v0 < 80 && v1 >= 80 && accel > 0) {
+      sprint80120Active    = true;
+      sprint80120StartTime = interpolateTime(v0, v1, 80, t0, t1);
+    }
+    // 80-120 — arrivée interpolée à 120 km/h
+    if (sprint80120Active && v0 < 120 && v1 >= 120) {
+      const tArr  = interpolateTime(v0, v1, 120, t0, t1);
+      const elapsed = (tArr - sprint80120StartTime) / 1000;
+      if (!best80120 || elapsed < best80120) best80120 = elapsed;
+      sprint80120Active = false;
+      flash('s80120', 'Nouveau chrono !', 'Meilleur temps');
+    }
+    // Annulation si on repasse sous 80 avant 120
+    if (sprint80120Active && v1 < 80) {
+      sprint80120Active = false; sprint80120StartTime = null;
+    }
+  }
 
+  function flash(id, msg, resetMsg) {
+    const el = document.getElementById(id);
+    el.innerHTML = '<span class="recording-dot"></span>' + msg;
+    setTimeout(() => { el.textContent = resetMsg; }, 2500);
+  }
+
+  function onGpsError(err) {
+    const msgs = { 1: 'Accès GPS refusé', 2: 'Position indisponible', 3: 'Timeout GPS' };
+    setGpsStatus('lost', null, msgs[err.code] || 'Erreur GPS');
+  }
+
+  // Perte de signal : si aucun tick GPS depuis 3s
+  function scheduleGpsLostCheck() {
+    clearTimeout(gpsLostTimer);
+    gpsLostTimer = setTimeout(() => {
+      setGpsStatus('lost');
+      // Vitesse gardée à la dernière valeur connue — pas de remise à zéro
+    }, 3000);
+  }
+
+  function setGpsStatus(status, accuracy, msg) {
+    const dot    = document.getElementById('gps-dot');
+    const label  = document.getElementById('gps-label');
+    const detail = document.getElementById('gps-detail');
+    dot.className = 'gps-dot ' + status;
+    if (status === 'searching') {
+      label.textContent  = 'Recherche GPS…';
+      detail.textContent = '';
+    } else if (status === 'good') {
+      label.textContent  = 'GPS actif';
+      detail.textContent = accuracy ? '±' + Math.round(accuracy) + ' m' : '';
+    } else if (status === 'lost') {
+      label.textContent  = msg || 'Signal GPS perdu';
+      detail.textContent = 'dernière valeur';
+    }
+    document.getElementById('spd').classList.toggle('gps-lost', status === 'lost');
+  }
+
+  // ── Reset ──
+  function resetAll() {
+    speed = 0; accel = 0;
+    prevSpeedMs = null; prevGpsTime = null;
+    maxSpeed = 0; maxAccel = 0;
+    best0100 = null; best80120 = null;
+    sprint0100Active = false; sprint0100StartTime = null;
+    sprint80120Active = false; sprint80120StartTime = null;
+    ['t0100','t80120'].forEach(id => { document.getElementById(id).textContent = '--.-'; });
+    ['s0100','s80120'].forEach(id => { document.getElementById(id).textContent = 'En attente'; });
+    ['b0100','b80120'].forEach(id => { document.getElementById(id).style.width = '0%'; });
+    updateUI();
+  }
+
+  // ── Wake Lock ──
+  let wakeLock = null;
+  async function requestWakeLock() {
     try {
-      localStorage.setItem('maVoiture', JSON.stringify(data));
-      st.innerHTML = '<div class="status status-success">✓ Voiture enregistrée !</div>';
-      setTimeout(() => showScreen('screen-home'), 900);
-    } catch (e) {
-      // Quota dépassé : on tente sans photo
-      const dataNoPhoto = { lat, lng, address, note, photo: null, parkedAt };
-      try {
-        localStorage.setItem('maVoiture', JSON.stringify(dataNoPhoto));
-        st.innerHTML = '<div class="status status-info">✓ Enregistré (photo omise : mémoire du navigateur insuffisante).</div>';
-        setTimeout(() => showScreen('screen-home'), 1200);
-      } catch {
-        st.innerHTML = '<div class="status status-error">Erreur de sauvegarde. Mémoire locale pleine.</div>';
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
       }
-    }
+    } catch(e) {}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && gpsWatchId !== null) requestWakeLock();
+  });
+
+  // ── Pocket lock ──
+  let lockHoldTimer = null, lockHoldStart = null;
+  const HOLD_MS = 2000;
+
+  function engagePocketLock() {
+    const overlay = document.getElementById('lock-overlay');
+    overlay.classList.add('visible');
+    document.getElementById('btn-lock').classList.add('engaged');
+    updateLockStats();
+    overlay.addEventListener('pointerdown', startUnlock);
+    overlay.addEventListener('pointerup',   cancelUnlock);
+    overlay.addEventListener('pointerleave',cancelUnlock);
   }
 
-  /* ── Suppression ── */
-  function deletePark() {
-    if (!confirm('Effacer les informations de stationnement ?')) return;
-    localStorage.removeItem('maVoiture');
-    stopTimer();
-    refreshHome();
+  function startUnlock() {
+    lockHoldStart = performance.now();
+    lockHoldTimer = setInterval(() => {
+      const ratio = Math.min((performance.now() - lockHoldStart) / HOLD_MS, 1);
+      document.getElementById('lock-progress').style.strokeDashoffset = 345 * (1 - ratio);
+      if (ratio >= 1) disengagePocketLock();
+    }, 30);
   }
 
-  /* ── Chronomètre ── */
-  function formatDuration(ms) {
-    const s = Math.floor(ms / 1000);
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+  function cancelUnlock() {
+    clearInterval(lockHoldTimer); lockHoldTimer = null; lockHoldStart = null;
+    document.getElementById('lock-progress').style.strokeDashoffset = 345;
   }
 
-  function stopTimer() {
-    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  function disengagePocketLock() {
+    clearInterval(lockHoldTimer); lockHoldTimer = null;
+    const overlay = document.getElementById('lock-overlay');
+    overlay.classList.remove('visible');
+    overlay.removeEventListener('pointerdown', startUnlock);
+    overlay.removeEventListener('pointerup',   cancelUnlock);
+    overlay.removeEventListener('pointerleave',cancelUnlock);
+    document.getElementById('lock-progress').style.strokeDashoffset = 345;
+    document.getElementById('btn-lock').classList.remove('engaged');
   }
 
-  function startTimer(parkedAt) {
-    stopTimer();
-    const parkedDate = new Date(parkedAt);
-    const sinceStr = parkedDate.toLocaleString('fr-FR', {
-      weekday: 'long', day: 'numeric', month: 'long',
-      hour: '2-digit', minute: '2-digit'
+  function updateLockStats() {
+    document.getElementById('lock-vmax').textContent   = Math.round(maxSpeed);
+    document.getElementById('lock-t0100').textContent  = best0100  ? best0100.toFixed(2)  + 's' : '--';
+    document.getElementById('lock-t80120').textContent = best80120 ? best80120.toFixed(2) + 's' : '--';
+  }
+
+  // ── Rendu ──
+  // ── Service Worker (PWA) ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
-    document.getElementById('timer-since').textContent = 'Depuis le ' + sinceStr;
-
-    function tick() {
-      const elapsed = Date.now() - parkedDate.getTime();
-      const el = document.getElementById('timer-display');
-      el.textContent = formatDuration(elapsed);
-      const hours = elapsed / 3_600_000;
-      el.className = 'timer-value' + (hours >= 3 ? ' alert' : hours >= 1 ? ' warn' : '');
-    }
-    tick();
-    timerInterval = setInterval(tick, 1000);
   }
 
-  /* ── Rafraîchissement accueil ── */
-  function refreshHome() {
-    stopTimer();
-    const raw = localStorage.getItem('maVoiture');
-    const noPark = document.getElementById('no-parking');
-    const hasPark = document.getElementById('has-parking');
-    const divider = document.getElementById('home-divider');
+  function updateUI() {
+    const s = Math.round(speed);
+    const sEl = document.getElementById('spd');
+    sEl.textContent = String(s).padStart(3, '0');
+    sEl.style.color = s > 180 ? '#ff3333' : s > 100 ? '#ffaa00' : '#ffffff';
 
-    if (!raw) {
-      noPark.style.display = 'block';
-      hasPark.style.display = 'none';
-      divider.style.display = 'block';
-      document.getElementById('btn-register').style.display = 'block';
-      return;
+    const aEl = document.getElementById('acc');
+    aEl.textContent = Math.abs(accel).toFixed(2);
+    aEl.style.color = accel < -0.3 ? '#ff5555' : '#ffaa00';
+
+    document.getElementById('vmax').textContent = Math.round(maxSpeed);
+    document.getElementById('amax').textContent = maxAccel.toFixed(2);
+
+    const bar = document.getElementById('speed-bar');
+    bar.style.width   = Math.min(speed / 260 * 100, 100) + '%';
+    bar.style.background = speed > 180 ? '#ff3333' : speed > 100 ? '#ffaa00' : '#00ff88';
+
+    if (best0100 !== null) {
+      document.getElementById('t0100').textContent = best0100.toFixed(2) + 's';
+      document.getElementById('b0100').style.width = (Math.min(1 - best0100 / 15, 1) * 100) + '%';
     }
-
-    let d;
-    try { d = JSON.parse(raw); } catch { localStorage.removeItem('maVoiture'); return; }
-
-    noPark.style.display = 'none';
-    hasPark.style.display = 'block';
-    divider.style.display = 'none';
-    document.getElementById('btn-register').style.display = 'none';
-
-    const photo = document.getElementById('home-photo');
-    if (d.photo) { photo.src = d.photo; photo.style.display = 'block'; }
-    else { photo.style.display = 'none'; }
-
-    document.getElementById('home-address').textContent = d.address || 'Adresse non renseignée';
-    document.getElementById('home-coords').textContent = (d.lat && d.lng) ? d.lat + ', ' + d.lng : '';
-    document.getElementById('home-note').textContent = d.note || '';
-
-    const metricsDiv = document.getElementById('home-gps-metrics');
-    if (d.accuracy || d.satellites || d.quality) {
-      document.getElementById('home-metric-accuracy').textContent = d.accuracy || '—';
-      document.getElementById('home-metric-quality').textContent = d.quality || '—';
-      metricsDiv.style.display = 'block';
-    } else {
-      metricsDiv.style.display = 'none';
+    if (best80120 !== null) {
+      document.getElementById('t80120').textContent = best80120.toFixed(2) + 's';
+      document.getElementById('b80120').style.width = (Math.min(1 - best80120 / 10, 1) * 100) + '%';
     }
 
-    if (d.parkedAt) startTimer(d.parkedAt);
-    fetchDistance();
+    if (document.getElementById('lock-overlay').classList.contains('visible')) updateLockStats();
   }
-
-  /* ── Chargement pour édition ── */
-  function loadEditData() {
-    const raw = localStorage.getItem('maVoiture');
-    photoData = null;
-    removePhoto();
-    if (!raw) return;
-    let d;
-    try { d = JSON.parse(raw); } catch { return; }
-    document.getElementById('lat').value = d.lat || '';
-    document.getElementById('lng').value = d.lng || '';
-    document.getElementById('address').value = d.address || '';
-    document.getElementById('note').value = d.note || '';
-    if (d.photo) {
-      photoData = d.photo;
-      const preview = document.getElementById('photo-preview');
-      preview.src = d.photo;
-      preview.style.display = 'block';
-      document.getElementById('photo-placeholder').style.display = 'none';
-      document.getElementById('remove-photo-btn').style.display = 'inline-block';
-    }
-  }
-
-  /* ── Navigation GPS ── */
-  function openNav(app) {
-    const raw = localStorage.getItem('maVoiture');
-    if (!raw) return;
-    let d;
-    try { d = JSON.parse(raw); } catch { return; }
-    const lat = encodeURIComponent(d.lat);
-    const lng = encodeURIComponent(d.lng);
-    let url = '';
-    if (app === 'google') url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
-    else if (app === 'apple') url = `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=w`;
-    else if (app === 'waze') url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-    window.location.href = url;
-  }
-
-  /* ── Distance à pied via OSRM ── */
-  function fetchDistance() {
-    const raw = localStorage.getItem('maVoiture');
-    if (!raw) return;
-    let d;
-    try { d = JSON.parse(raw); } catch { return; }
-    if (!d.lat || !d.lng) return;
-
-    const card = document.getElementById('distance-card');
-    const display = document.getElementById('distance-display');
-    const walkTime = document.getElementById('walk-time');
-    const status = document.getElementById('distance-status');
-
-    card.style.display = 'flex';
-    display.textContent = '…';
-    walkTime.textContent = '';
-    status.textContent = 'Localisation en cours…';
-
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const userLat = pos.coords.latitude;
-        const userLng = pos.coords.longitude;
-        status.textContent = "Calcul de l'itinéraire…";
-
-        const url = `https://router.project-osrm.org/route/v1/foot/${userLng},${userLat};${d.lng},${d.lat}?overview=false`;
-
-        fetch(url)
-          .then(r => r.json())
-          .then(data => {
-            if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
-              display.textContent = '—';
-              status.textContent = 'Itinéraire indisponible';
-              return;
-            }
-            const route = data.routes[0];
-            const meters = Math.round(route.distance);
-            const seconds = Math.round(route.duration);
-            const minutes = Math.round(seconds / 60);
-
-            display.textContent = meters >= 1000
-              ? (meters / 1000).toFixed(1) + ' km'
-              : meters + ' m';
-
-            walkTime.textContent = minutes < 1 ? '< 1 min' : minutes + ' min à pied';
-            status.textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-          })
-          .catch(() => {
-            display.textContent = '—';
-            status.textContent = 'Erreur réseau. Vérifiez votre connexion.';
-          });
-      },
-      () => {
-        display.textContent = '—';
-        status.textContent = "Impossible d'obtenir votre position.";
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
-
-  /* ── Init ── */
-  refreshHome();
 </script>
 </body>
 </html>
