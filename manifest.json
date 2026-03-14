@@ -2,7 +2,7 @@
   "name": "Où est ma voiture ?",
   "short_name": "Ma voiture",
   "description": "Enregistrez votre place de parking et retrouvez votre voiture facilement.",
-  "start_url": "/index.html",
+  "start_url": "/Ou-est-ma-voiture/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#185FA5",

@@ -1,9 +1,9 @@
 const CACHE_NAME = 'ma-voiture-v1';
 const ASSETS = [
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/Ou-est-ma-voiture/index.html',
+  '/Ou-est-ma-voiture/manifest.json',
+  '/Ou-est-ma-voiture/icon-192.png',
+  '/Ou-est-ma-voiture/icon-512.png'
 ];
 
 // Installation : mise en cache des ressources statiques
